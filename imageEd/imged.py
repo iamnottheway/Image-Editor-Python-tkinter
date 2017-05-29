@@ -28,7 +28,7 @@ class WindowApp():
 		self.openImgBtn = Button(self.ToolBoxFrame,command = self.open_img,width = 20,height = 20,bd = 0,cursor = "hand2")
 		self.FolderOpenIcon = ImageTk.PhotoImage(file="icons/folder-open-resize.png")
 		self.openImgBtn.config(image= self.FolderOpenIcon)
-		self.openImgBtn.grid(row =  1,column=2)
+		self.openImgBtn.grid(row =  1,column=2,sticky = W)
 		# create a button and add an icon 
 		self.BrushButton = Button(self.ToolBoxFrame,width = 20,height = 20,text = 'bb',bd = 0,cursor = "hand2",command = self.StartDraw)
 		self.BrushIcon = ImageTk.PhotoImage(file="icons/brush-resize.png")
@@ -72,6 +72,8 @@ class EditWindow():
 
 	def __init__(self,parent):
 		self.parent = parent
+		self.TopLevelXPos = 0
+		self.TopLevelYPos = 0
 		#self.path = path
 		
 	def BrushEffects(self):
@@ -80,28 +82,75 @@ class EditWindow():
 		self.editWin.geometry("300x300+900+150")
 		self.editWin.config(bg = BG_COLOR)
 		self.editWin.resizable(0,0)
+		self.editWin.overrideredirect(1)
+		#  bind the mouse-button to the window, so that when
+		# the user holds the window it moves
+		self.editWin.bind('<Button-1>',self.ClickTopLevel)
+		self.editWin.bind('<B1-Motion>',self.DragTopLevel)
+		#self.editWin.bind('<<ButtonRelease-1>>',self.ReleaseMb1)
 		# contents of the window
 
-		# BRUSH-THICKNESS 
+		# CLOSE WINDOW BUTTON
+		self.closeXmarker = ImageTk.PhotoImage(file="icons/cc.png")
+		self.closeBrushWin = Button(self.editWin,width = 15,height=15,bd = 0,bg = BG_COLOR,command=self.editWin.withdraw,\
+			cursor='hand2',activebackground=BG_COLOR)
+		self.closeBrushWin.config(image=self.closeXmarker)
+		self.closeBrushWin.grid(row=0,column=2,sticky=E,pady = 5)
 
+		# BRUSH-THICKNESS 
 		self.thicknessLabel = Label(self.editWin,text = "Thickness :",bg = BG_COLOR,fg="snow")
-		self.thicknessLabel.grid(row = 0,column=1)
+		self.thicknessLabel.grid(row = 1,column=1,sticky = W)
 		# slider
 		self.BrushThickness = Scale(self.editWin, from_=0, to=100,orient=HORIZONTAL,width = 10,bd = 0,bg = "#333",fg = 'white',\
 			length = 250)
-		self.BrushThickness.grid(row=1,column=1)
+		self.BrushThickness.grid(row=2,column=1,padx = 5)
 		# refresh thickness button
 		self.RefreshThicknessBtn = ImageTk.PhotoImage(file="icons/tick.png")
 		self.SetBrushThicknessBtn = Button(self.editWin,width=20,height=20,text = 'v',bd = 0,command=self.refreshBrushthk,cursor = "hand2")
 		self.SetBrushThicknessBtn.config(image = self.RefreshThicknessBtn)
-		self.SetBrushThicknessBtn.grid(row=1,column=2,padx = 5)
+		self.SetBrushThicknessBtn.grid(row=2,column=2,padx = 5)
+
+		# COLOR PALETTE
+		self.ColorPaletteLabel = Label(self.editWin,text = 'Color Palette',fg = 'white',bg = BG_COLOR)
+		self.ColorPaletteLabel.grid(row = 3,column = 1,pady = 5,sticky =W)
+		self.ColorPaletteCanvas = Canvas(self.editWin,width = 210,height = 100,bg = 'white',cursor = 'tcross')
+		self.ColorPaletteCanvas.grid(row = 4,column=1,pady = 2)
+		# colors inside the palette
+		x_pos = 0
+		y_pos = 0
+		# final x coord of the canvas is 200
+		# and y coord is 100. -20 from them
+		for c in COLORS:
+			self.colorsInside = self.ColorPaletteCanvas.create_rectangle(x_pos,y_pos,x_pos+10,y_pos+10,fill = c)
+			#showing all the colors on the screen
+			x_pos += 10
+			if x_pos > 200:
+				y_pos += 10
+				x_pos = 0
 		
 	def refreshBrushthk(self):
 		# store the thickness to use in the label
 		self.LabelThickness = self.BrushThickness.get()
 		self.thicknessLabel.config(text = "Thickness : {}".format(self.LabelThickness))
 		return self.BrushThickness.get()
-		
+
+	def ClickTopLevel(self,event):
+		# when the window is clicked get the current mouse coord
+		'''
+		if event.y >= 35:
+			event.y = 30
+			self.editWindow.geometry('+{x}+{y}'.format(x=self.editWindow.winfo_pointerx(),y=self.editWindow.winfo_pointery()))
+		#print(event.x,event.y)'''
+		self.TopLevelXPos,self.TopLevelYPos = event.x,event.y
+	
+	def DragTopLevel(self,event):
+		#print(event)
+		self.childWin = self.editWin
+		x = self.childWin.winfo_pointerx() - self.TopLevelXPos
+		y = self.childWin.winfo_pointery() - self.TopLevelYPos
+		#self.childWin.config(cursor = 'fleur')
+		self.childWin.geometry('+{x}+{y}'.format(x=x,y=y))
+
 
 class ImageOperations():
 	# basic image operations	
