@@ -6,6 +6,7 @@ from PIL import ImageTk, Image
 from tkinter import filedialog
 from skimage import io,color
 from colors import COLORS
+from MoveWindow import MovableWindow
 
 
 
@@ -13,7 +14,25 @@ BG_COLOR = '#24272b'
 SIZE = [800,600]
 
 
-class WindowApp():
+# EDIT PICTURE 
+class PictureEdit(MovableWindow):
+
+	def __init__(self,parent):
+		self.parent = parent
+		self.PictureEditWin()
+
+	def PictureEditWin(self):
+		self.PicEdWin = Toplevel(self.parent)
+		self.PicEdWin.title("Picture Effects")
+		self.PicEdWin.geometry("300x300+900+150")
+		self.PicEdWin.config(bg = BG_COLOR)
+		self.PicEdWin.resizable(0,0)
+		self.PicEdWin.overrideredirect(1)
+		MovableWindow.__init__(self,self.PicEdWin)
+
+
+
+class WindowApp(PictureEdit):
 
 	def __init__(self,master):
 		self.master = master
@@ -23,7 +42,7 @@ class WindowApp():
 		self.master.resizable(0,0)
 		# container to hold the tools
 		self.ToolBoxFrame = Frame(self.master,width = SIZE[0],height= 50,bg="blue")
-		self.ToolBoxFrame.grid(row = 1,column= 1,padx = 10,pady = 10)
+		self.ToolBoxFrame.grid(row = 1,column= 1,padx = 10,pady = 5,sticky = W)
 		# add icon to open img button
 		self.openImgBtn = Button(self.ToolBoxFrame,command = self.open_img,width = 20,height = 20,bd = 0,cursor = "hand2")
 		self.FolderOpenIcon = ImageTk.PhotoImage(file="icons/folder-open-resize.png")
@@ -34,24 +53,37 @@ class WindowApp():
 		self.BrushIcon = ImageTk.PhotoImage(file="icons/brush-resize.png")
 		self.BrushButton.config(image = self.BrushIcon)
 		self.BrushButton.grid(row = 1,column = 3)
+		# camera edit button
+		self.PicEditButton = Button(self.ToolBoxFrame,text = "C",width = 20,height = 20,bd = 0,cursor='hand2',command=self.ShowPicEditor)
+		self.PicEditIcon = ImageTk.PhotoImage(file="icons/cam.png")
+		self.PicEditButton.config(image = self.PicEditIcon)
+		self.PicEditButton.grid(row = 1,column = 4)
+
+	def ShowPicEditor(self):
+		super().__init__(self.master)
+		
 
 	def openfn(self):
 		self.filename = filedialog.askopenfilename(title='open')
 		return self.filename
 
 	def open_img(self):
-		self.path = self.openfn()
-		self.master.title(self.path)
-		self.DrawCanvas = Canvas(self.master,width = SIZE[0],height = SIZE[1],bg = '#333')
-		self.DrawCanvas.grid(row = 2,column = 1)
-		self.img = Image.open(self.path)
-		self.img = self.img.resize((700, 500), Image.ANTIALIAS)
-		# image converted to photoimg object
-		self.img = ImageTk.PhotoImage(self.img)
-		self.DrawCanvas.create_image(SIZE[0]/2,SIZE[1]/2,image=self.img)
-		# convert the image into an numpy array for further processing
-		self.imgIO = ImageOperations(self.path)
-		self.imageAsArray = self.imgIO.GetImageAsArray()
+		try:
+			self.path = self.openfn()
+			self.master.title(self.path)
+			self.DrawCanvas = Canvas(self.master,width = SIZE[0],height = SIZE[1],bg = '#333')
+			self.DrawCanvas.grid(row = 2,column = 1)
+			self.img = Image.open(self.path)
+			self.img = self.img.resize((700, 500), Image.ANTIALIAS)
+			# image converted to photoimg object
+			self.img = ImageTk.PhotoImage(self.img)
+			self.DrawCanvas.create_image(SIZE[0]/2,SIZE[1]/2,image=self.img)
+			# convert the image into an numpy array for further processing
+			self.imgIO = ImageOperations(self.path)
+			self.imageAsArray = self.imgIO.GetImageAsArray()
+		except:
+			# if the open file dialog box is closed without opening any image just ignore the error
+			pass
 
 	def StartDraw(self):
 		self.BrushWin = EditWindow(self.master)
@@ -60,15 +92,19 @@ class WindowApp():
 		self.master.bind('<B1-Motion>',self.Draw)
 
 	def Draw(self,event,thickness = 5):
-		self.event = event
-		# gets the current size of the brush
-		self.thickness = self.BrushWin.refreshBrushthk()
-		self.DrawCanvas.config(cursor="tcross")
-		self.x,self.y = self.event.x,self.event.y
-		self.point = self.DrawCanvas.create_oval(self.x,self.y,self.x+self.thickness,self.y+self.thickness,fill = COLORS[random.randint(0,len(COLORS)-1)])
-		del self.point
+		try:
+			self.event = event
+			# gets the current size of the brush
+			self.thickness = self.BrushWin.refreshBrushthk()
+			self.DrawCanvas.config(cursor="tcross")
+			self.x,self.y = self.event.x,self.event.y
+			self.point = self.DrawCanvas.create_oval(self.x,self.y,self.x+self.thickness,self.y+self.thickness,fill = COLORS[random.randint(0,len(COLORS)-1)])
+			del self.point
+		except:
+			print("NOTHING TO DRAW ON YOU DUMBFUCK!")
 
-class EditWindow():
+
+class EditWindow(MovableWindow):
 
 	def __init__(self,parent):
 		self.parent = parent
@@ -85,18 +121,9 @@ class EditWindow():
 		self.editWin.overrideredirect(1)
 		#  bind the mouse-button to the window, so that when
 		# the user holds the window it moves
-		self.editWin.bind('<Button-1>',self.ClickTopLevel)
-		self.editWin.bind('<B1-Motion>',self.DragTopLevel)
-		#self.editWin.bind('<<ButtonRelease-1>>',self.ReleaseMb1)
-		# contents of the window
-
-		# CLOSE WINDOW BUTTON
-		self.closeXmarker = ImageTk.PhotoImage(file="icons/cc.png")
-		self.closeBrushWin = Button(self.editWin,width = 15,height=15,bd = 0,bg = BG_COLOR,command=self.editWin.withdraw,\
-			cursor='hand2',activebackground=BG_COLOR)
-		self.closeBrushWin.config(image=self.closeXmarker)
-		self.closeBrushWin.grid(row=0,column=2,sticky=E,pady = 5)
-
+		# create a canvas to drag the window, so that it doesn't affect oher widgets
+		# call the movable window class
+		MovableWindow.__init__(self,self.editWin)
 		# BRUSH-THICKNESS 
 		self.thicknessLabel = Label(self.editWin,text = "Thickness :",bg = BG_COLOR,fg="snow")
 		self.thicknessLabel.grid(row = 1,column=1,sticky = W)
@@ -133,24 +160,6 @@ class EditWindow():
 		self.LabelThickness = self.BrushThickness.get()
 		self.thicknessLabel.config(text = "Thickness : {}".format(self.LabelThickness))
 		return self.BrushThickness.get()
-
-	def ClickTopLevel(self,event):
-		# when the window is clicked get the current mouse coord
-		'''
-		if event.y >= 35:
-			event.y = 30
-			self.editWindow.geometry('+{x}+{y}'.format(x=self.editWindow.winfo_pointerx(),y=self.editWindow.winfo_pointery()))
-		#print(event.x,event.y)'''
-		self.TopLevelXPos,self.TopLevelYPos = event.x,event.y
-	
-	def DragTopLevel(self,event):
-		#print(event)
-		self.childWin = self.editWin
-		x = self.childWin.winfo_pointerx() - self.TopLevelXPos
-		y = self.childWin.winfo_pointery() - self.TopLevelYPos
-		#self.childWin.config(cursor = 'fleur')
-		self.childWin.geometry('+{x}+{y}'.format(x=x,y=y))
-
 
 class ImageOperations():
 	# basic image operations	
