@@ -13,6 +13,79 @@ from MoveWindow import MovableWindow
 BG_COLOR = '#24272b'
 SIZE = [800,600]
 
+IMAGE_PATH = "empty"
+
+
+class ImageOperations():
+	# basic image operations	
+	def __init__(self,path2img):
+		self.path2img = path2img
+
+	# converts an image as an array
+	def GetImageAsArray(self):
+		self.image = self.path2img
+		self.img2ar = []
+		try:
+			self.img2ar = io.imread(self.image)
+		except Exception as e:
+			print(e)
+		return self.img2ar
+
+	# converts the array to an image and saves
+	def SaveArray2Img(self,array,path = '/home/freezer9/Desktop/',imageName='ebab.png'):
+		self.array,self.imageName,self.path = array,imageName,path 
+		self.path = self.path + self.imageName
+		io.imsave(self.path,self.array)
+		print("Image saved @ {}".format(self.path))
+
+
+class ImageEffects():
+	def __init__(self):
+		pass
+
+	def AddaBox(self,array,row,col,colorAr):
+		self.array,self.row,self.col,self.colorAr = array,row,col,colorAr
+		self.array[:self.row,:self.col] = self.colorAr
+		print('Added a box')
+		return self.array
+
+	def ColorGradient(self,array,rainbwRow,rowHeight = 'NONE'):
+		# creates a spectrum of random colors
+		# rainbwRow is the height of the box, max height depends on the image dimensions
+		self.rowHeight = rowHeight
+		self.rainbwRow = rainbwRow
+		if self.rowHeight == 'MAX':
+			self.rainbwRow = max(array.shape)
+		self.array = array
+		while self.rainbwRow > 0:
+			self.array = self.AddaBox(self.array,self.rainbwRow,250,[random.randint(0,255),random.randint(0,255),random.randint(0,255)])
+			self.rainbwRow -= 2
+		return self.array
+
+	def ColorPixelate(self,array):
+		# changew the image into random color spots
+		self.array = array
+		self.maxNum = max(self.array.shape)
+		for row in range(0,self.maxNum):
+			for col in range(0,self.maxNum):
+				# randomly change the color of 1px 
+				self.array[row,col] = [random.randint(0,255),random.randint(0,255),random.randint(0,255)]
+		return self.array
+
+	def Convert2Gray(self,array):
+		# converts to grayscale
+		self.array = array
+		return color.rgb2gray(self.array)
+
+	def grayscaleFilter1(self,array,TintMagnitude):
+		# dim the gray scale or brighten it up
+		# gray scale values range from 0 - 1 (sigmoid function to make a number range from 0-1)
+		self.array,self.TintMagnitude = array,TintMagnitude
+		# convert to gray
+		self.array = self.Convert2Gray(self.array)
+		self.array = (self.TintMagnitude * self.array)
+		return self.array
+
 
 # EDIT PICTURE 
 class PictureEdit(MovableWindow):
@@ -29,9 +102,30 @@ class PictureEdit(MovableWindow):
 		self.PicEdWin.resizable(0,0)
 		self.PicEdWin.overrideredirect(1)
 		MovableWindow.__init__(self,self.PicEdWin)
+		self.grayLab = Label(self.PicEdWin,text = "grayscale",bg=BG_COLOR,fg = "#fff")
+		self.grayLab.grid(row = 1,column=1,sticky=W,padx = 10)
+		self.grayscaleSlider = Scale(self.PicEdWin, from_=0, to=100,orient=HORIZONTAL,\
+			width = 10,bd = 0,bg = "#333",fg = 'white',length = 250,highlightthickness=1)
+		self.grayscaleSlider.grid(row = 2,column=1)
 
+		self.okButton = Button(self.PicEdWin,text = "ok",command = self.getGrayScaleValue,bd = 0,bg = BG_COLOR,width = 1,\
+			height = 1).grid(row = 3,column=1,\
+			ipadx = 1,ipady= 0)
 
+	def getGrayScaleValue(self):
+		# return the slider value which ranges btwn 0 - 1
+		return self.grayscaleSlider.get()/100
 
+	# find a way to get the image location into this stuff
+	def ConvertToGray(self,imPath):
+		self.graytintMag = self.getGrayScaleValue()
+		self.imPath = imPath
+		self.imgOp = ImageOperations(self.imPath)
+		self.imAr = self.imgOp.GetImageAsArray()
+		self.imEffects = ImageEffects()
+		self.imEffects.grayscaleFilter1(self.imAr,self.graytintMag)
+
+# Main Parent window class
 class WindowApp(PictureEdit):
 
 	def __init__(self,master):
@@ -85,6 +179,10 @@ class WindowApp(PictureEdit):
 			# if the open file dialog box is closed without opening any image just ignore the error
 			pass
 
+	def GetCurrentPath(self):
+		return self.path 
+
+	# function to draw stuff on the canvas
 	def StartDraw(self):
 		self.BrushWin = EditWindow(self.master)
 		self.BrushWin.BrushEffects()
@@ -161,74 +259,7 @@ class EditWindow(MovableWindow):
 		self.thicknessLabel.config(text = "Thickness : {}".format(self.LabelThickness))
 		return self.BrushThickness.get()
 
-class ImageOperations():
-	# basic image operations	
-	def __init__(self,path2img):
-		self.path2img = path2img
 
-	def GetImageAsArray(self):
-		self.image = self.path2img
-		self.img2ar = []
-		try:
-			self.img2ar = io.imread(self.image)
-		except Exception as e:
-			print(e)
-		return self.img2ar
-
-	def SaveArray2Img(self,array,path = '/home/freezer9/Desktop/',imageName='ebab.png'):
-		self.array,self.imageName,self.path = array,imageName,path 
-		self.path = self.path + self.imageName
-		io.imsave(self.path,self.array)
-		print("Image saved @ {}".format(self.path))
-
-
-
-class ImageEffects():
-	def __init__(self):
-		pass
-
-	def AddaBox(self,array,row,col,colorAr):
-		self.array,self.row,self.col,self.colorAr = array,row,col,colorAr
-		self.array[:self.row,:self.col] = self.colorAr
-		print('Added a box')
-		return self.array
-
-	def ColorGradient(self,array,rainbwRow,rowHeight = 'NONE'):
-		# creates a spectrum of random colors
-		# rainbwRow is the height of the box, max height depends on the image dimensions
-		self.rowHeight = rowHeight
-		self.rainbwRow = rainbwRow
-		if self.rowHeight == 'MAX':
-			self.rainbwRow = max(array.shape)
-		self.array = array
-		while self.rainbwRow > 0:
-			self.array = self.AddaBox(self.array,self.rainbwRow,250,[random.randint(0,255),random.randint(0,255),random.randint(0,255)])
-			self.rainbwRow -= 2
-		return self.array
-
-	def ColorPixelate(self,array):
-		# changew the image into random color spots
-		self.array = array
-		self.maxNum = max(self.array.shape)
-		for row in range(0,self.maxNum):
-			for col in range(0,self.maxNum):
-				# randomly change the color of 1px 
-				self.array[row,col] = [random.randint(0,255),random.randint(0,255),random.randint(0,255)]
-		return self.array
-
-	def Convert2Gray(self,array):
-		# converts to grayscale
-		self.array = array
-		return color.rgb2gray(self.array)
-
-	def brightORdimGray(self,array,TintMagnitude):
-		# dim the gray scale or brighten it up
-		# gray scale values range from 0 - 1 (sigmoid function to make a number range from 0-1)
-		self.array,self.TintMagnitude = array,TintMagnitude
-		# convert to gray
-		self.array = self.Convert2Gray(self.array)
-		self.array = (self.TintMagnitude * self.array)
-		return self.array
 
 
 def Tester(imgPath):

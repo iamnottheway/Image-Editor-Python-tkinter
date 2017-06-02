@@ -1,3 +1,8 @@
+# @HarowitzBlack -> author
+# A MOVABLE TOP AND A SEXY CLOSE BUTTON FOR THE NAKED BITCH!!!
+# @candiedpussy :p -> awesome name, isn't it? NEVER USE IT! I'll sue you for intellectual 
+# property theft!!! lol :o, (.)(.)
+
 
 from tkinter import *
 from PIL import ImageTk, Image
@@ -13,18 +18,20 @@ class MovableWindow():
 	def __init__(self,parent):
 		self.parent = parent
 		# create a canvas which is movable
-		self.MovableCanvas = Canvas(self.parent,width = 260,height = 25,\
-			bg = BG_COLOR)
+		self.Holder = Frame(self.parent,width = 260,height=20,bg = BG_COLOR)
+		self.Holder.grid(row = 0,column = 1,ipady=2)
+		self.MovableCanvas = Canvas(self.Holder,width = 260,height = 25,\
+			bg = BG_COLOR,highlightthickness=0)
 		self.MovableCanvas.bind('<Button-1>',self.ClickTopLevel)
 		self.MovableCanvas.bind('<B1-Motion>',self.DragTopLevel)
 		self.MovableCanvas.grid(row = 0,column = 1,sticky = W)
 
 		# CLOSE WINDOW BUTTON
 		self.closeXmarker = ImageTk.PhotoImage(file="icons/cc.png")
-		self.closeBrushWin = Button(self.parent,width = 15,height=15,bd = 0,bg = BG_COLOR,command=self.parent.withdraw,\
-			cursor='hand2',activebackground=BG_COLOR)
+		self.closeBrushWin = Button(self.Holder,width = 20,height=20,bd = 0,bg = BG_COLOR,command=self.parent.withdraw,\
+			cursor='hand2',activebackground=BG_COLOR,highlightthickness=0)
 		self.closeBrushWin.config(image=self.closeXmarker)
-		self.closeBrushWin.grid(row=0,column=2,sticky=E,pady = 5)
+		self.closeBrushWin.grid(row=0,column=2,sticky=E,padx = 7)
 
 	def ClickTopLevel(self,event):
 		self.TopLevelXPos,self.TopLevelYPos = event.x,event.y
